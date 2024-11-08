@@ -35,9 +35,11 @@ async def lifespan(app: FastAPI):
     async with AsyncExitStack() as stack:
         for route in app.routes:
             if isinstance(route, Mount) and isinstance(route.app, FastAPI):
-                await stack.enter_async_context(
+                maybe_state = await stack.enter_async_context(
                     route.app.router.lifespan_context(route.app),
                 )
+                if maybe_state and isinstance(maybe_state, dict):
+                    route.app.state._state.update(maybe_state)
         app.state.lifespan_called = True
         yield
 
